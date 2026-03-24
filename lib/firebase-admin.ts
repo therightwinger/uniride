@@ -1,0 +1,71 @@
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  updateDoc,
+  query,
+  where
+} from "firebase/firestore"
+import { db } from "./firebase"
+import { UserProfile } from "./firebase-auth"
+
+// Get all users (admin only)
+export async function getAllUsers() {
+  try {
+    const usersRef = collection(db, "users")
+    const snapshot = await getDocs(usersRef)
+    
+    const users: UserProfile[] = []
+    snapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() } as UserProfile)
+    })
+    
+    return { success: true, users }
+  } catch (error: any) {
+    console.error("Get all users error:", error)
+    return { success: false, error: error.message, users: [] }
+  }
+}
+
+// Update user status (admin only)
+export async function updateUserStatus(
+  userId: string, 
+  status: "pending" | "verified" | "rejected" | "disabled"
+) {
+  try {
+    const userRef = doc(db, "users", userId)
+    const updates: any = { status }
+    
+    if (status === "verified") {
+      updates.verifiedAt = new Date().toISOString()
+    } else if (status === "disabled") {
+      updates.disabledAt = new Date().toISOString()
+    }
+    
+    await updateDoc(userRef, updates)
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update user status error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get pending verifications (admin only)
+export async function getPendingVerifications() {
+  try {
+    const usersRef = collection(db, "users")
+    const q = query(usersRef, where("status", "==", "pending"))
+    const snapshot = await getDocs(q)
+    
+    const users: UserProfile[] = []
+    snapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() } as UserProfile)
+    })
+    
+    return { success: true, users }
+  } catch (error: any) {
+    console.error("Get pending verifications error:", error)
+    return { success: false, error: error.message, users: [] }
+  }
+}
