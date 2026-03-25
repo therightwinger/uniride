@@ -14,6 +14,7 @@ import {
   arrayRemove
 } from "firebase/firestore"
 import { db } from "./firebase"
+import { cache } from "./cache"
 
 export interface Ride {
   id: string
@@ -65,6 +66,13 @@ export async function createRide(rideData: Omit<Ride, "id">) {
 // Get all available rides (future rides only)
 export async function getAvailableRides() {
   try {
+    // Check cache first
+    const cacheKey = 'available-rides'
+    const cached = cache.get<Ride[]>(cacheKey)
+    if (cached) {
+      return { success: true, rides: cached }
+    }
+
     const ridesRef = collection(db, "rides")
     const q = query(ridesRef, orderBy("createdAt", "desc"))
     const snapshot = await getDocs(q)
@@ -84,6 +92,9 @@ export async function getAvailableRides() {
         rides.push(ride)
       }
     })
+    
+    // Cache for 30 seconds
+    cache.set(cacheKey, rides, 30000)
     
     return { success: true, rides }
   } catch (error: any) {

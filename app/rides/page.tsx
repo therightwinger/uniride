@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
+import { useDebounce } from "@/hooks/use-debounce"
 import Link from "next/link"
 import { formatShortDate } from "@/lib/date-utils"
 import { getAvailableRides } from "@/lib/firebase-rides"
@@ -20,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { SidebarLayout } from "@/components/sidebar-layout"
 import { RideCardSkeleton } from "@/components/skeletons"
+import { RideCard } from "@/components/ride-card"
 import { cn } from "@/lib/utils"
 
 export default function RidesDashboard() {
@@ -27,6 +29,7 @@ export default function RidesDashboard() {
   const [rides, setRides] = useState<any[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
   const [userStatus, setUserStatus] = useState<string>("verified")
   const [loading, setLoading] = useState(true)
 
@@ -53,20 +56,27 @@ export default function RidesDashboard() {
     fetchRides()
   }, [])
 
-  const filteredRides = rides.filter((ride) => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
+  const filteredRides = useMemo(() => {
+    if (!debouncedSearch) return rides
+    const q = debouncedSearch.toLowerCase()
+    return rides.filter((ride) => 
       ride.origin?.toLowerCase().includes(q) ||
       ride.destination?.toLowerCase().includes(q) ||
       ride.pickup?.toLowerCase().includes(q) ||
       ride.dropoff?.toLowerCase().includes(q) ||
       ride.driver?.name?.toLowerCase().includes(q)
     )
-  })
+  }, [rides, debouncedSearch])
 
-  const firstName = currentUser?.name?.split(" ")[0] || "there"
-  const isMyRide = (ride: any) => ride.driverId === currentUser?.id
+  const firstName = useMemo(() => 
+    currentUser?.name?.split(" ")[0] || "there",
+    [currentUser]
+  )
+
+  const isMyRide = useCallback((ride: any) => 
+    ride.driverId === currentUser?.id,
+    [currentUser]
+  )
 
   const vehicleLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -194,90 +204,16 @@ export default function RidesDashboard() {
                 <p className="text-zinc-400 text-sm">No rides available. Try a different search.</p>
               </div>
             ) : (
-              filteredRides.map((ride) => {
-                const mine = isMyRide(ride)
-                const origin = ride.pickup || ride.origin || "Origin"
-                const destination = ride.dropoff || ride.destination || "Destination"
-                const driverInitials = ride.driver?.name
-                  ? ride.driver.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-                  : "?"
-
-                return (
-                  <div
-                    key={ride.id}
-                    className="bg-zinc-900 border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all"
-                  >
-                    {/* Origin */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
-                      <p className="text-xs text-zinc-400 truncate">{origin}</p>
-                    </div>
-
-                    {/* Destination */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                      <p className="text-sm font-semibold text-white truncate">{destination}</p>
-                      <div className="ml-auto text-right shrink-0">
-                        <p className="text-base font-bold text-white">₹{ride.price}</p>
-                        <p className="text-[10px] text-zinc-500">per seat</p>
-                      </div>
-                    </div>
-
-                    {/* Meta row */}
-                    <div className="flex items-center gap-3 text-xs text-zinc-400 mb-3">
-                      <span>
-                        {ride.date ? `${formatShortDate(ride.date)}` : ""}
-                        {ride.time ? ` · ${ride.time}` : ""}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {ride.bookedSeats ? `${ride.seats - ride.bookedSeats}/${ride.seats}` : ride.seats} available
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                        {ride.driver?.rating ?? "0.0"}
-                      </span>
-                      <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold", vehicleBadgeClass(ride.vehicleType))}>
-                        {vehicleLabel(ride.vehicleType)}
-                      </span>
-                    </div>
-
-                    {/* Driver + actions */}
-                    <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-[11px] font-bold text-white">
-                          {driverInitials}
-                        </div>
-                        <span className="text-sm text-zinc-300">{ride.driver?.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!mine && (
-                          <Link href={`/messages?ride=${ride.id}`}>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-300 transition-colors">
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              Chat
-                            </button>
-                          </Link>
-                        )}
-                        <Link href={`/rides/${ride.id}`}>
-                          <button
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                              mine
-                                ? "bg-zinc-700 text-zinc-200 hover:bg-zinc-600"
-                                : userStatus === "pending"
-                                ? "bg-zinc-700 text-zinc-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-500 text-white"
-                            )}
-                          >
-                            {mine ? "Your Ride" : "Join →"}
-                          </button>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
+              filteredRides.map((ride) => (
+                <RideCard
+                  key={ride.id}
+                  ride={ride}
+                  isMyRide={isMyRide(ride)}
+                  userStatus={userStatus}
+                  vehicleLabel={vehicleLabel}
+                  vehicleBadgeClass={vehicleBadgeClass}
+                />
+              ))
             )}
           </div>
         </main>
