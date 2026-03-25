@@ -10,7 +10,8 @@ import {
   doc,
   updateDoc,
   setDoc,
-  getDoc
+  getDoc,
+  deleteDoc
 } from "firebase/firestore"
 import { db } from "./firebase"
 
@@ -207,6 +208,62 @@ export async function markMessagesAsRead(conversationId: string, userId: string)
     return { success: true }
   } catch (error: any) {
     console.error("Mark as read error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Delete a single message
+export async function deleteMessage(conversationId: string, messageId: string) {
+  try {
+    const messageRef = doc(db, "conversations", conversationId, "messages", messageId)
+    await deleteDoc(messageRef)
+    
+    // Update last message if this was the last one
+    const messagesRef = collection(db, "conversations", conversationId, "messages")
+    const q = query(messagesRef, orderBy("timestamp", "desc"))
+    const snapshot = await getDocs(q)
+    
+    const conversationRef = doc(db, "conversations", conversationId)
+    
+    if (snapshot.empty) {
+      // No messages left
+      await updateDoc(conversationRef, {
+        lastMessage: "",
+        lastMessageTime: new Date().toISOString()
+      })
+    } else {
+      // Update with the new last message
+      const lastMsg = snapshot.docs[0].data()
+      await updateDoc(conversationRef, {
+        lastMessage: lastMsg.text,
+        lastMessageTime: lastMsg.timestamp
+      })
+    }
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete message error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Delete entire conversation
+export async function deleteConversation(conversationId: string) {
+  try {
+    // Delete all messages in the conversation
+    const messagesRef = collection(db, "conversations", conversationId, "messages")
+    const messagesSnapshot = await getDocs(messagesRef)
+    
+    const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(deletePromises)
+    
+    // Delete the conversation document
+    const conversationRef = doc(db, "conversations", conversationId)
+    await deleteDoc(conversationRef)
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete conversation error:", error)
     return { success: false, error: error.message }
   }
 }
