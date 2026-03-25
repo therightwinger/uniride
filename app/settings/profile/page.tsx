@@ -15,6 +15,7 @@ export default function ProfileSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploadingId, setIsUploadingId] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [idType, setIdType] = useState<"license" | "other">("other")
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,6 +30,7 @@ export default function ProfileSettingsPage() {
     if (userStr) {
       const user = JSON.parse(userStr)
       setCurrentUser(user)
+      setIdType(user.idType || "other")
       setFormData({
         name: user.name || "",
         email: user.email || "",
@@ -80,17 +82,22 @@ export default function ProfileSettingsPage() {
 
     setIsUploadingId(true)
 
-    const result = await uploadGovernmentId(currentUser.id, file)
+    const result = await uploadGovernmentId(currentUser.id, file, idType)
 
     if (result.success) {
       // Update local user status
-      const updatedUser = { ...currentUser, status: "pending", submittedAt: new Date().toISOString() }
+      const updatedUser = { 
+        ...currentUser, 
+        status: "pending", 
+        idType: idType,
+        submittedAt: new Date().toISOString() 
+      }
       localStorage.setItem("currentUser", JSON.stringify(updatedUser))
       setCurrentUser(updatedUser)
 
       toast({
         title: "ID uploaded",
-        description: "Your government ID has been submitted for verification."
+        description: `Your ${idType === "license" ? "driver's license" : "government ID"} has been submitted for verification.`
       })
     } else {
       toast({
@@ -146,16 +153,53 @@ export default function ProfileSettingsPage() {
         {/* No ID Warning */}
         {currentUser && !currentUser.govIdImage && (
           <div className="mb-6 p-4 rounded-xl border bg-red-500/10 border-red-500/20">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-4 h-4 text-red-400" />
               <p className="text-sm font-semibold text-red-300">
                 Government ID Required
               </p>
             </div>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-zinc-400 mb-4">
               You must upload a government ID to create or join rides
             </p>
-            <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold cursor-pointer transition-colors">
+            
+            {/* ID Type Selection */}
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                ID Type
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIdType("license")}
+                  className={`py-3 px-4 rounded-xl border text-sm font-semibold transition-all ${
+                    idType === "license"
+                      ? "border-blue-500 bg-blue-500/10 text-white"
+                      : "border-white/10 bg-zinc-800/50 text-zinc-400 hover:border-white/20"
+                  }`}
+                >
+                  🚗 Driver's License
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIdType("other")}
+                  className={`py-3 px-4 rounded-xl border text-sm font-semibold transition-all ${
+                    idType === "other"
+                      ? "border-blue-500 bg-blue-500/10 text-white"
+                      : "border-white/10 bg-zinc-800/50 text-zinc-400 hover:border-white/20"
+                  }`}
+                >
+                  🆔 Government ID
+                </button>
+              </div>
+              <p className="text-xs text-zinc-500 mt-2">
+                {idType === "license" 
+                  ? "Upload your driver's license to offer rides in your own vehicle"
+                  : "Upload any government-issued photo ID (Aadhaar, PAN, Passport, etc.)"}
+              </p>
+            </div>
+            
+            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold cursor-pointer transition-colors">
               <input
                 type="file"
                 accept="image/*,.pdf"
@@ -171,7 +215,7 @@ export default function ProfileSettingsPage() {
               ) : (
                 <>
                   <Upload className="w-4 h-4" />
-                  Upload Government ID
+                  Upload {idType === "license" ? "Driver's License" : "Government ID"}
                 </>
               )}
             </label>

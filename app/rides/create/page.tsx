@@ -672,16 +672,7 @@ export default function CreateRidePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      const userStr = localStorage.getItem("currentUser")
-                      const user = userStr ? JSON.parse(userStr) : null
-                      // Admins can select any ride type, or users with driver's license
-                      if (user?.role !== "admin" && user?.idType !== "license") {
-                        alert("You need a driver's license to offer rides in your own vehicle. Please register with a driver's license or choose 'Shared Cab'.")
-                        return
-                      }
-                      setRideType("own")
-                    }}
+                    onClick={() => setRideType("own")}
                     className={cn(
                       "py-3 px-4 rounded-xl border text-sm font-semibold transition-all",
                       rideType === "own"
