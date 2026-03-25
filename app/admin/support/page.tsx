@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Mail, Clock, CheckCircle, AlertCircle, X, Eye } from "lucide-react"
 import { AdminSidebarLayout } from "@/components/admin-sidebar-layout"
-import { getAllSupportMessages, updateSupportMessageStatus, type SupportMessage } from "@/lib/firebase-support"
+import { getAllSupportMessages, updateSupportMessageStatus, addSupportReply, type SupportMessage } from "@/lib/firebase-support"
 
 const statusConfig = {
   new: { 
@@ -38,6 +38,8 @@ export default function AdminSupportPage() {
   const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null)
   const [filterStatus, setFilterStatus] = useState<"all" | "new" | "in-progress" | "resolved">("all")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState("")
+  const [isSendingReply, setIsSendingReply] = useState(false)
 
   useEffect(() => {
     if (localStorage.getItem("admin_token") !== "true") {
@@ -79,6 +81,43 @@ export default function AdminSupportPage() {
     }
     
     setUpdatingId(null)
+  }
+
+  const handleSendReply = async () => {
+    if (!selectedMessage || !replyText.trim()) return
+    
+    setIsSendingReply(true)
+    
+    const result = await addSupportReply(
+      selectedMessage.id,
+      "Admin Support",
+      replyText.trim(),
+      selectedMessage.userId
+    )
+    
+    if (result.success) {
+      // Update local state
+      const newReply = {
+        id: Date.now().toString(),
+        adminName: "Admin Support",
+        message: replyText.trim(),
+        createdAt: new Date().toISOString()
+      }
+      
+      const updatedMessage = {
+        ...selectedMessage,
+        replies: [...(selectedMessage.replies || []), newReply],
+        status: "in-progress" as const
+      }
+      
+      setSelectedMessage(updatedMessage)
+      setMessages(messages.map(m => m.id === selectedMessage.id ? updatedMessage : m))
+      setReplyText("")
+    } else {
+      alert("Failed to send reply: " + result.error)
+    }
+    
+    setIsSendingReply(false)
   }
 
   const filteredMessages = messages.filter(m => 
@@ -317,6 +356,57 @@ export default function AdminSupportPage() {
                 <p className="text-xs text-zinc-500 mb-2">Message</p>
                 <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{selectedMessage.message}</p>
               </div>
+
+              {/* Replies Section */}
+              {selectedMessage.replies && selectedMessage.replies.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Replies</p>
+                  {selectedMessage.replies.map((reply) => (
+                    <div key={reply.id} className="bg-blue-600/10 border border-blue-600/20 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-blue-400">{reply.adminName}</p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(reply.createdAt).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                      </div>
+                      <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{reply.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Reply Form */}
+              {selectedMessage.status !== "resolved" && (
+                <div className="bg-zinc-800/50 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Send Reply</p>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your reply to the user..."
+                    className="w-full px-4 py-3 bg-zinc-900 border border-white/10 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-3"
+                    rows={4}
+                  />
+                  <button
+                    onClick={handleSendReply}
+                    disabled={!replyText.trim() || isSendingReply}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSendingReply ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reply"
+                    )}
+                  </button>
+                </div>
+              )}
 
               {selectedMessage.resolvedAt && (
                 <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-xl p-4">
