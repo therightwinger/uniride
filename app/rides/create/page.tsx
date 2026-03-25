@@ -690,13 +690,22 @@ export default function CreateRidePage() {
                       setRideType("own")
                     }}
                     className={cn(
-                      "py-3 px-4 rounded-xl border text-sm font-semibold transition-all",
+                      "py-3 px-4 rounded-xl border text-sm font-semibold transition-all relative",
                       rideType === "own"
                         ? "border-blue-500 bg-blue-500/10 text-white"
                         : "border-white/10 bg-zinc-800/50 text-zinc-400 hover:border-white/20"
                     )}
                   >
-                    🚗 Own Vehicle
+                    <div className="flex flex-col items-center gap-1">
+                      <span>🚗 Own Vehicle</span>
+                      {(() => {
+                        const userStr = localStorage.getItem("currentUser")
+                        const user = userStr ? JSON.parse(userStr) : null
+                        return user?.role !== "admin" && user?.idType !== "license" && (
+                          <span className="text-[9px] text-zinc-500">License required</span>
+                        )
+                      })()}
+                    </div>
                   </button>
                   <button
                     type="button"
@@ -714,7 +723,7 @@ export default function CreateRidePage() {
                 <p className="text-xs text-zinc-500 mt-2">
                   {rideType === "own" 
                     ? "You'll drive passengers in your own vehicle (requires driver's license)"
-                    : "You'll share a cab/taxi with other passengers"}
+                    : "You'll share a cab/taxi with other passengers (no driver's license needed)"}
                 </p>
               </Field>
               
