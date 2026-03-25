@@ -672,7 +672,23 @@ export default function CreateRidePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setRideType("own")}
+                    onClick={() => {
+                      const userStr = localStorage.getItem("currentUser")
+                      const user = userStr ? JSON.parse(userStr) : null
+                      
+                      // Check if user has driver's license
+                      if (user?.role !== "admin" && user?.idType !== "license") {
+                        // Show prompt to upload driver's license
+                        if (window.confirm(
+                          "To offer rides in your own vehicle, you need to upload a driver's license.\n\n" +
+                          "Would you like to go to your profile settings to upload your driver's license now?"
+                        )) {
+                          router.push("/settings/profile")
+                        }
+                        return
+                      }
+                      setRideType("own")
+                    }}
                     className={cn(
                       "py-3 px-4 rounded-xl border text-sm font-semibold transition-all",
                       rideType === "own"
@@ -697,7 +713,7 @@ export default function CreateRidePage() {
                 </div>
                 <p className="text-xs text-zinc-500 mt-2">
                   {rideType === "own" 
-                    ? "You'll drive passengers in your own vehicle"
+                    ? "You'll drive passengers in your own vehicle (requires driver's license)"
                     : "You'll share a cab/taxi with other passengers"}
                 </p>
               </Field>
