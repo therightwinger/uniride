@@ -245,12 +245,12 @@ function MessagesPageContent() {
                       </button>
                     )}
                     <div className={cn(
-                      "max-w-[70%] px-4 py-2.5 rounded-2xl text-sm",
+                      "min-w-[80px] max-w-[70%] px-4 py-2.5 rounded-2xl text-sm break-words",
                       isMine
                         ? "bg-blue-600 text-white rounded-br-sm"
                         : "bg-zinc-800 text-zinc-100 rounded-bl-sm"
                     )}>
-                      <p>{msg.text}</p>
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
                       <p className={cn("text-[10px] mt-1", isMine ? "text-blue-200 text-right" : "text-zinc-500")}>
                         {formatTime(msg.timestamp)}
                       </p>
