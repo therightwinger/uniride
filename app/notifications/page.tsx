@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Check, CheckCheck, AlertCircle, CheckCircle, XCircle, Calendar } from "lucide-react"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { NotificationSkeleton } from "@/components/skeletons"
 import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from "@/lib/firebase-notifications"
 import { cn } from "@/lib/utils"
 
@@ -76,8 +77,18 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <SidebarLayout>
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        <div className="min-h-screen bg-[#0a0a0a] text-white px-6 py-8">
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">Notifications</h1>
+              <p className="text-zinc-400">Loading...</p>
+            </div>
+            <div className="space-y-3">
+              <NotificationSkeleton />
+              <NotificationSkeleton />
+              <NotificationSkeleton />
+            </div>
+          </div>
         </div>
       </SidebarLayout>
     )

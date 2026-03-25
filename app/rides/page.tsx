@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { RideCardSkeleton } from "@/components/skeletons"
 import { cn } from "@/lib/utils"
 
 export default function RidesDashboard() {
@@ -27,6 +28,7 @@ export default function RidesDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [userStatus, setUserStatus] = useState<string>("verified")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const userStr = localStorage.getItem("currentUser")
@@ -40,10 +42,12 @@ export default function RidesDashboard() {
     
     // Fetch rides from Firebase
     const fetchRides = async () => {
+      setLoading(true)
       const result = await getAvailableRides()
       if (result.success) {
         setRides(result.rides)
       }
+      setLoading(false)
     }
     
     fetchRides()
@@ -177,7 +181,14 @@ export default function RidesDashboard() {
           </div>
 
           <div className="space-y-3">
-            {filteredRides.length === 0 ? (
+            {loading ? (
+              // Show skeleton loaders while loading
+              <>
+                <RideCardSkeleton />
+                <RideCardSkeleton />
+                <RideCardSkeleton />
+              </>
+            ) : filteredRides.length === 0 ? (
               <div className="bg-zinc-900 border border-white/5 rounded-xl p-10 text-center">
                 <Car className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
                 <p className="text-zinc-400 text-sm">No rides available. Try a different search.</p>
@@ -220,7 +231,7 @@ export default function RidesDashboard() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        {ride.seats} seats
+                        {ride.bookedSeats ? `${ride.seats - ride.bookedSeats}/${ride.seats}` : ride.seats} available
                       </span>
                       <span className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />

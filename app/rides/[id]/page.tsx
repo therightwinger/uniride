@@ -17,6 +17,7 @@ import {
   X
 } from "lucide-react"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { RideDetailSkeleton } from "@/components/skeletons"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { formatDate } from "@/lib/date-utils"
 
@@ -116,9 +117,7 @@ export default function RideDetailPage() {
   if (!ride) {
     return (
       <SidebarLayout>
-        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <RideDetailSkeleton />
       </SidebarLayout>
     )
   }
@@ -199,15 +198,22 @@ export default function RideDetailPage() {
               {[
                 { icon: Calendar, label: "Date", value: formatDate(ride.date) },
                 { icon: Clock, label: "Time", value: ride.time },
-                { icon: Users, label: "Seats Left", value: `${ride.seatsLeft} of ${ride.seats}` },
+                { 
+                  icon: Users, 
+                  label: "Available Seats", 
+                  value: `${ride.bookedSeats ? ride.seats - ride.bookedSeats : ride.seats}/${ride.seats}`,
+                  highlight: (ride.bookedSeats ? ride.seats - ride.bookedSeats : ride.seats) <= 2
+                },
                 { icon: Car, label: "Vehicle", value: ride.vehicleType },
-              ].map(({ icon: Icon, label, value }) => (
+              ].map(({ icon: Icon, label, value, highlight }) => (
                 <div key={label} className="bg-zinc-800/50 border border-white/5 rounded-xl p-3.5">
                   <div className="flex items-center gap-1.5 text-zinc-500 mb-1">
                     <Icon className="w-3.5 h-3.5" />
                     <span className="text-xs">{label}</span>
                   </div>
-                  <p className="text-sm font-medium text-white capitalize">{value}</p>
+                  <p className={`text-sm font-medium capitalize ${highlight ? 'text-yellow-400' : 'text-white'}`}>
+                    {value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -254,7 +260,7 @@ export default function RideDetailPage() {
                 ) : (
                   <button 
                     onClick={handleJoinRide} 
-                    disabled={isJoining || ride.seatsLeft === 0 || !isVerified || hasNoId} 
+                    disabled={isJoining || (ride.bookedSeats && ride.bookedSeats >= ride.seats) || !isVerified || hasNoId} 
                     className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isJoining ? (
@@ -272,7 +278,7 @@ export default function RideDetailPage() {
                         <Shield className="w-4 h-4" />
                         Verify ID to Join
                       </>
-                    ) : ride.seatsLeft === 0 ? "Ride Full" : "Join Ride"}
+                    ) : (ride.bookedSeats && ride.bookedSeats >= ride.seats) ? "Ride Full" : "Join Ride"}
                   </button>
                 )}
                 <button 

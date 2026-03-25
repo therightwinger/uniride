@@ -34,6 +34,7 @@ export interface Ride {
   time: string
   seats: number
   seatsLeft: number
+  bookedSeats?: number
   price: number
   vehicleType: string
   notes?: string
@@ -138,13 +139,15 @@ export async function joinRide(rideId: string, passenger: { id: string; name: st
     }
     
     const ride = rideDoc.data() as Ride
+    const bookedSeats = ride.bookedSeats || ride.passengers?.length || 0
+    const availableSeats = ride.seats - bookedSeats
     
-    if (ride.seatsLeft <= 0) {
+    if (availableSeats <= 0) {
       return { success: false, error: "No seats available" }
     }
     
     // Check if already joined
-    if (ride.passengers.some(p => p.id === passenger.id)) {
+    if (ride.passengers?.some(p => p.id === passenger.id)) {
       return { success: false, error: "Already joined this ride" }
     }
     
@@ -153,7 +156,8 @@ export async function joinRide(rideId: string, passenger: { id: string; name: st
         ...passenger,
         joinedAt: new Date().toISOString()
       }),
-      seatsLeft: ride.seatsLeft - 1
+      bookedSeats: bookedSeats + 1,
+      seatsLeft: availableSeats - 1
     })
     
     return { success: true }
@@ -174,14 +178,17 @@ export async function leaveRide(rideId: string, passengerId: string) {
     }
     
     const ride = rideDoc.data() as Ride
-    const passenger = ride.passengers.find(p => p.id === passengerId)
+    const passenger = ride.passengers?.find(p => p.id === passengerId)
     
     if (!passenger) {
       return { success: false, error: "Not a passenger on this ride" }
     }
     
+    const bookedSeats = ride.bookedSeats || ride.passengers?.length || 0
+    
     await updateDoc(rideRef, {
       passengers: arrayRemove(passenger),
+      bookedSeats: Math.max(0, bookedSeats - 1),
       seatsLeft: ride.seatsLeft + 1
     })
     
