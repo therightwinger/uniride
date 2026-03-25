@@ -94,3 +94,68 @@ export async function getPendingVerifications() {
     return { success: false, error: error.message, users: [] }
   }
 }
+
+// Update driver's license status (admin only)
+export async function updateLicenseStatus(
+  userId: string, 
+  licenseStatus: "pending" | "verified" | "rejected",
+  rejectionReason?: string
+) {
+  try {
+    const userRef = doc(db, "users", userId)
+    const updates: any = { licenseStatus }
+    
+    if (licenseStatus === "verified") {
+      updates.licenseVerifiedAt = new Date().toISOString()
+      
+      // Send approval notification
+      await createNotification(
+        userId,
+        "license_approved",
+        "Driver's License Verified! 🚗",
+        "Your driver's license has been verified. You can now create rides using your own vehicle.",
+        "/profile"
+      )
+    } else if (licenseStatus === "rejected") {
+      updates.licenseRejectedAt = new Date().toISOString()
+      if (rejectionReason) {
+        updates.licenseRejectionReason = rejectionReason
+      }
+      
+      // Send rejection notification
+      await createNotification(
+        userId,
+        "license_rejected",
+        "Driver's License Verification Rejected",
+        rejectionReason || "Your driver's license verification was rejected. Please upload a clear image of your valid driver's license and try again.",
+        "/settings/profile"
+      )
+    }
+    
+    await updateDoc(userRef, updates)
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update license status error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get pending license verifications (admin only)
+export async function getPendingLicenseVerifications() {
+  try {
+    const usersRef = collection(db, "users")
+    const q = query(usersRef, where("licenseStatus", "==", "pending"))
+    const snapshot = await getDocs(q)
+    
+    const users: UserProfile[] = []
+    snapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() } as UserProfile)
+    })
+    
+    return { success: true, users }
+  } catch (error: any) {
+    console.error("Get pending license verifications error:", error)
+    return { success: false, error: error.message, users: [] }
+  }
+}

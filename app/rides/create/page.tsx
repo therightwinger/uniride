@@ -93,6 +93,8 @@ export default function CreateRidePage() {
         // No ID uploaded - block access
         setUserStatus("no-id")
       } else {
+        // User has gov ID - check if verified
+        // Even if license is pending, they can still create shared rides
         setUserStatus(user.status || "pending")
       }
     } else {
@@ -676,11 +678,11 @@ export default function CreateRidePage() {
                       const userStr = localStorage.getItem("currentUser")
                       const user = userStr ? JSON.parse(userStr) : null
                       
-                      // Check if user has driver's license
-                      if (user?.role !== "admin" && user?.idType !== "license") {
+                      // Check if user has verified driver's license
+                      if (user?.role !== "admin" && user?.licenseStatus !== "verified") {
                         // Show prompt to upload driver's license
                         if (window.confirm(
-                          "To offer rides in your own vehicle, you need to upload a driver's license.\n\n" +
+                          "To offer rides in your own vehicle, you need to upload and verify a driver's license.\n\n" +
                           "Would you like to go to your profile settings to upload your driver's license now?"
                         )) {
                           router.push("/settings/profile")
@@ -701,7 +703,7 @@ export default function CreateRidePage() {
                       {(() => {
                         const userStr = localStorage.getItem("currentUser")
                         const user = userStr ? JSON.parse(userStr) : null
-                        return user?.role !== "admin" && user?.idType !== "license" && (
+                        return user?.role !== "admin" && user?.licenseStatus !== "verified" && (
                           <span className="text-[9px] text-zinc-500">License required</span>
                         )
                       })()}

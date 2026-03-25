@@ -278,7 +278,7 @@ export default function ProfileSettingsPage() {
             </div>
 
             {/* Upgrade to Driver's License */}
-            {currentUser.status === "verified" && currentUser.idType !== "license" && (
+            {currentUser.status === "verified" && currentUser.idType !== "license" && !currentUser.licenseImage && (
               <div className="mb-6 p-4 rounded-xl border bg-blue-500/10 border-blue-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">🚗</span>
@@ -287,7 +287,7 @@ export default function ProfileSettingsPage() {
                   </p>
                 </div>
                 <p className="text-xs text-zinc-400 mb-4">
-                  Upload your driver's license to unlock the ability to create rides using your own vehicle
+                  Upload your driver's license to unlock the ability to create rides using your own vehicle. You'll still be able to use shared cab rides while your license is being verified.
                 </p>
                 
                 <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-semibold cursor-pointer transition-colors">
@@ -313,6 +313,58 @@ export default function ProfileSettingsPage() {
                     </>
                   )}
                 </label>
+              </div>
+            )}
+
+            {/* Driver's License Verification Status */}
+            {currentUser.licenseImage && (
+              <div className={`mb-6 p-4 rounded-xl border ${
+                currentUser.licenseStatus === "verified" 
+                  ? "bg-emerald-500/10 border-emerald-500/20" 
+                  : currentUser.licenseStatus === "pending"
+                  ? "bg-yellow-500/10 border-yellow-500/20"
+                  : "bg-red-500/10 border-red-500/20"
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🚗</span>
+                  <p className={`text-sm font-semibold ${
+                    currentUser.licenseStatus === "verified" ? "text-emerald-300" : 
+                    currentUser.licenseStatus === "pending" ? "text-yellow-300" : "text-red-300"
+                  }`}>
+                    Driver's License {currentUser.licenseStatus === "verified" ? "Verified" : 
+                    currentUser.licenseStatus === "pending" ? "Under Review" : "Rejected"}
+                  </p>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  {currentUser.licenseStatus === "verified" && "You can now create rides using your own vehicle"}
+                  {currentUser.licenseStatus === "pending" && "Your driver's license is being reviewed. You can still use shared cab rides."}
+                  {currentUser.licenseStatus === "rejected" && "Please upload a valid driver's license"}
+                </p>
+                {currentUser.licenseStatus === "rejected" && (
+                  <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-semibold cursor-pointer transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        setIdType("license")
+                        handleIdUpload(e)
+                      }}
+                      disabled={isUploadingId}
+                      className="hidden"
+                    />
+                    {isUploadingId ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Re-upload Driver's License
+                      </>
+                    )}
+                  </label>
+                )}
               </div>
             )}
           </>

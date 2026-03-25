@@ -25,6 +25,11 @@ export interface UserProfile {
   profileImage?: string
   govIdImage?: string
   idType?: "license" | "other"
+  // Dual ID tracking
+  licenseImage?: string
+  licenseStatus?: "pending" | "verified" | "rejected"
+  licenseSubmittedAt?: string
+  licenseVerifiedAt?: string
   submittedAt: string
   verifiedAt?: string
   disabledAt?: string
@@ -315,12 +320,37 @@ export async function uploadGovernmentId(userId: string, file: File, idType: "li
 
     // Update user profile
     const userRef = doc(db, "users", userId)
-    await updateDoc(userRef, {
-      govIdImage: govIdBase64,
-      idType: idType,
-      submittedAt: new Date().toISOString(),
-      status: "pending" // Reset to pending when new ID is uploaded
-    })
+    
+    // If uploading license as additional ID (user already has gov ID verified)
+    if (idType === "license") {
+      const userDoc = await getDoc(userRef)
+      const userData = userDoc.data()
+      
+      // If user already has a verified government ID, keep it and add license separately
+      if (userData?.status === "verified" && userData?.idType === "other") {
+        await updateDoc(userRef, {
+          licenseImage: govIdBase64,
+          licenseStatus: "pending",
+          licenseSubmittedAt: new Date().toISOString()
+        })
+      } else {
+        // First time upload or replacing existing
+        await updateDoc(userRef, {
+          govIdImage: govIdBase64,
+          idType: idType,
+          submittedAt: new Date().toISOString(),
+          status: "pending"
+        })
+      }
+    } else {
+      // Regular government ID upload
+      await updateDoc(userRef, {
+        govIdImage: govIdBase64,
+        idType: idType,
+        submittedAt: new Date().toISOString(),
+        status: "pending"
+      })
+    }
 
     // Fetch updated user
     const userDoc = await getDoc(userRef)
