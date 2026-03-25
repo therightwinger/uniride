@@ -13,6 +13,8 @@ export default function ApprovalsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [rejectingUserId, setRejectingUserId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState("")
 
   useEffect(() => {
     const userStr = localStorage.getItem("currentUser")
@@ -58,7 +60,7 @@ export default function ApprovalsPage() {
 
   const handleReject = async (userId: string) => {
     setProcessingId(userId)
-    const result = await updateUserStatus(userId, "rejected")
+    const result = await updateUserStatus(userId, "rejected", rejectionReason)
     
     if (result.success) {
       setUsers(users.filter(u => u.id !== userId))
@@ -72,11 +74,24 @@ export default function ApprovalsPage() {
           localStorage.setItem("currentUser", JSON.stringify(currentUser))
         }
       }
+      
+      setRejectingUserId(null)
+      setRejectionReason("")
     } else {
       alert("Failed to reject user: " + result.error)
     }
     
     setProcessingId(null)
+  }
+
+  const openRejectDialog = (userId: string) => {
+    setRejectingUserId(userId)
+    setRejectionReason("")
+  }
+
+  const closeRejectDialog = () => {
+    setRejectingUserId(null)
+    setRejectionReason("")
   }
 
   if (!isAuthorized) {
@@ -200,7 +215,7 @@ export default function ApprovalsPage() {
                       )}
                     </button>
                     <button
-                      onClick={() => handleReject(user.id)}
+                      onClick={() => openRejectDialog(user.id)}
                       disabled={processingId === user.id}
                       className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -213,6 +228,104 @@ export default function ApprovalsPage() {
             </div>
           )}
         </div>
+
+        {/* Rejection Dialog */}
+        {rejectingUserId && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-bold text-white mb-2">Reject ID Verification</h3>
+              <p className="text-sm text-zinc-400 mb-4">
+                Please provide a reason for rejection. The user will be notified.
+              </p>
+              
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={() => setRejectionReason("ID image is not clear. Please upload a high-quality photo.")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-colors",
+                    rejectionReason === "ID image is not clear. Please upload a high-quality photo."
+                      ? "bg-blue-500/20 border-blue-500 text-white"
+                      : "bg-zinc-800 border-white/5 text-zinc-300 hover:border-white/10"
+                  )}
+                >
+                  📷 Image not clear
+                </button>
+                <button
+                  onClick={() => setRejectionReason("ID document is not fully visible. Please ensure all corners are shown.")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-colors",
+                    rejectionReason === "ID document is not fully visible. Please ensure all corners are shown."
+                      ? "bg-blue-500/20 border-blue-500 text-white"
+                      : "bg-zinc-800 border-white/5 text-zinc-300 hover:border-white/10"
+                  )}
+                >
+                  🔲 Document not fully visible
+                </button>
+                <button
+                  onClick={() => setRejectionReason("ID appears to be expired. Please upload a valid government ID.")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-colors",
+                    rejectionReason === "ID appears to be expired. Please upload a valid government ID."
+                      ? "bg-blue-500/20 border-blue-500 text-white"
+                      : "bg-zinc-800 border-white/5 text-zinc-300 hover:border-white/10"
+                  )}
+                >
+                  ⏰ ID expired
+                </button>
+                <button
+                  onClick={() => setRejectionReason("ID type not accepted. Please upload a government-issued photo ID.")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-colors",
+                    rejectionReason === "ID type not accepted. Please upload a government-issued photo ID."
+                      ? "bg-blue-500/20 border-blue-500 text-white"
+                      : "bg-zinc-800 border-white/5 text-zinc-300 hover:border-white/10"
+                  )}
+                >
+                  ❌ Invalid ID type
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Or write a custom reason:
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter rejection reason..."
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={closeRejectDialog}
+                  className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleReject(rejectingUserId)}
+                  disabled={!rejectionReason.trim() || processingId === rejectingUserId}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingId === rejectingUserId ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4" />
+                      Reject & Notify
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminSidebarLayout>
   )

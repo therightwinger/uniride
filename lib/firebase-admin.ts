@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { UserProfile } from "./firebase-auth"
+import { createNotification } from "./firebase-notifications"
 
 // Get all users (admin only)
 export async function getAllUsers() {
@@ -30,7 +31,8 @@ export async function getAllUsers() {
 // Update user status (admin only)
 export async function updateUserStatus(
   userId: string, 
-  status: "pending" | "verified" | "rejected" | "disabled"
+  status: "pending" | "verified" | "rejected" | "disabled",
+  rejectionReason?: string
 ) {
   try {
     const userRef = doc(db, "users", userId)
@@ -38,6 +40,29 @@ export async function updateUserStatus(
     
     if (status === "verified") {
       updates.verifiedAt = new Date().toISOString()
+      
+      // Send approval notification
+      await createNotification(
+        userId,
+        "id_approved",
+        "ID Verified Successfully! ✅",
+        "Your government ID has been verified. You can now create and book rides.",
+        "/profile"
+      )
+    } else if (status === "rejected") {
+      updates.rejectedAt = new Date().toISOString()
+      if (rejectionReason) {
+        updates.rejectionReason = rejectionReason
+      }
+      
+      // Send rejection notification
+      await createNotification(
+        userId,
+        "id_rejected",
+        "ID Verification Rejected",
+        rejectionReason || "Your ID verification was rejected. Please upload a clear image of your government ID and try again.",
+        "/settings/profile"
+      )
     } else if (status === "disabled") {
       updates.disabledAt = new Date().toISOString()
     }

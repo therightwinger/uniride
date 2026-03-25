@@ -10,22 +10,25 @@ import {
   User, 
   Plus, 
   LogOut,
-  Shield
+  Shield,
+  Bell
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BottomNav } from "@/components/bottom-nav"
 
 const navItems = [
-  { href: "/rides",        icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/messages",     icon: MessageCircle,    label: "Messages" },
-  { href: "/profile",      icon: User,             label: "Profile" },
-  { href: "/rides/create", icon: Plus,             label: "Create Ride" },
+  { href: "/rides",         icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/notifications", icon: Bell,            label: "Notifications" },
+  { href: "/messages",      icon: MessageCircle,   label: "Messages" },
+  { href: "/profile",       icon: User,            label: "Profile" },
+  { href: "/rides/create",  icon: Plus,            label: "Create Ride" },
 ]
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -43,6 +46,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       return last && last.senderId !== user.id
     }).length
     setUnreadCount(unread)
+
+    // Fetch unread notifications count
+    const fetchNotificationCount = async () => {
+      const { getUnreadNotificationCount } = await import("@/lib/firebase-notifications")
+      const result = await getUnreadNotificationCount(user.id)
+      if (result.success) {
+        setUnreadNotifications(result.count)
+      }
+    }
+    fetchNotificationCount()
   }, [])
 
   const handleLogout = async () => {
@@ -91,6 +104,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 {label === "Messages" && unreadCount > 0 && (
                   <span className="ml-auto bg-blue-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {unreadCount}
+                  </span>
+                )}
+                {label === "Notifications" && unreadNotifications > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadNotifications}
                   </span>
                 )}
               </Link>
