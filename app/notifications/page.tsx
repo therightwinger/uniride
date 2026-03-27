@@ -40,12 +40,18 @@ export default function NotificationsPage() {
     setNotifications(notifications.map(n => 
       n.id === notificationId ? { ...n, read: true } : n
     ))
+    
+    // Trigger storage event to update badge count in sidebar
+    window.dispatchEvent(new Event('notificationsUpdated'))
   }
 
   const handleMarkAllAsRead = async () => {
     if (!currentUser) return
     await markAllNotificationsAsRead(currentUser.id)
     setNotifications(notifications.map(n => ({ ...n, read: true })))
+    
+    // Trigger storage event to update badge count in sidebar
+    window.dispatchEvent(new Event('notificationsUpdated'))
   }
 
   const handleNotificationClick = (notification: Notification) => {

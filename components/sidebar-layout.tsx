@@ -56,7 +56,22 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       }
     }
     fetchNotificationCount()
-  }, [])
+    
+    // Listen for notification updates
+    const handleNotificationUpdate = () => {
+      fetchNotificationCount()
+    }
+    
+    window.addEventListener('notificationsUpdated', handleNotificationUpdate)
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000)
+    
+    return () => {
+      window.removeEventListener('notificationsUpdated', handleNotificationUpdate)
+      clearInterval(interval)
+    }
+  }, [pathname])
 
   const handleLogout = async () => {
     // Sign out from Firebase
