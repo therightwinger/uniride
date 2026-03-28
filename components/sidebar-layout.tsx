@@ -40,12 +40,19 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     // Check if user is admin
     setIsAdmin(user.role === "admin")
     
-    const convs = JSON.parse(localStorage.getItem("conversations") || "[]")
-    const unread = convs.filter((c: any) => {
-      const last = c.messages?.[c.messages.length - 1]
-      return last && last.senderId !== user.id
-    }).length
-    setUnreadCount(unread)
+    // Fetch unread message count from Firebase
+    const fetchUnreadMessageCount = async () => {
+      const { getUserConversations } = await import("@/lib/firebase-messages")
+      const result = await getUserConversations(user.id)
+      if (result.success) {
+        const unread = result.conversations.reduce((count, conv) => {
+          return count + (conv.unreadCount?.[user.id] || 0)
+        }, 0)
+        setUnreadCount(unread)
+      }
+    }
+    
+    fetchUnreadMessageCount()
 
     // Fetch unread notifications count
     const fetchNotificationCount = async () => {
@@ -62,13 +69,23 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       fetchNotificationCount()
     }
     
+    // Listen for message updates
+    const handleMessageUpdate = () => {
+      fetchUnreadMessageCount()
+    }
+    
     window.addEventListener('notificationsUpdated', handleNotificationUpdate)
+    window.addEventListener('messagesUpdated', handleMessageUpdate)
     
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchNotificationCount, 30000)
+    const interval = setInterval(() => {
+      fetchNotificationCount()
+      fetchUnreadMessageCount()
+    }, 30000)
     
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationUpdate)
+      window.removeEventListener('messagesUpdated', handleMessageUpdate)
       clearInterval(interval)
     }
   }, [pathname])

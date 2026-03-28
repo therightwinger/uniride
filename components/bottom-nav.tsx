@@ -16,6 +16,7 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     const userStr = localStorage.getItem("currentUser")
@@ -30,20 +31,44 @@ export function BottomNav() {
         setUnreadNotifications(result.count)
       }
     }
+    
+    // Fetch unread message count
+    const fetchUnreadMessageCount = async () => {
+      const { getUserConversations } = await import("@/lib/firebase-messages")
+      const result = await getUserConversations(user.id)
+      if (result.success) {
+        const unread = result.conversations.reduce((count, conv) => {
+          return count + (conv.unreadCount?.[user.id] || 0)
+        }, 0)
+        setUnreadMessages(unread)
+      }
+    }
+    
     fetchNotificationCount()
+    fetchUnreadMessageCount()
     
     // Listen for notification updates
     const handleNotificationUpdate = () => {
       fetchNotificationCount()
     }
     
+    // Listen for message updates
+    const handleMessageUpdate = () => {
+      fetchUnreadMessageCount()
+    }
+    
     window.addEventListener('notificationsUpdated', handleNotificationUpdate)
+    window.addEventListener('messagesUpdated', handleMessageUpdate)
     
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchNotificationCount, 30000)
+    const interval = setInterval(() => {
+      fetchNotificationCount()
+      fetchUnreadMessageCount()
+    }, 30000)
     
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationUpdate)
+      window.removeEventListener('messagesUpdated', handleMessageUpdate)
       clearInterval(interval)
     }
   }, [pathname])
@@ -54,7 +79,8 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           const Icon = item.icon
-          const showBadge = item.href === "/notifications" && unreadNotifications > 0
+          const showNotificationBadge = item.href === "/notifications" && unreadNotifications > 0
+          const showMessageBadge = item.href === "/messages" && unreadMessages > 0
 
           return (
             <Link
@@ -69,9 +95,14 @@ export function BottomNav() {
               aria-label={item.label}
             >
               <Icon className={cn("w-6 h-6", isActive && "text-blue-500")} />
-              {showBadge && (
+              {showNotificationBadge && (
                 <span className="absolute top-1 right-3 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadNotifications}
+                </span>
+              )}
+              {showMessageBadge && (
+                <span className="absolute top-1 right-3 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {unreadMessages}
                 </span>
               )}
               <span className="text-xs">{item.label}</span>

@@ -108,7 +108,10 @@ function MessagesPageContent() {
 
     // Mark messages as read
     if (currentUser) {
-      markMessagesAsRead(activeConv.id, currentUser.id)
+      markMessagesAsRead(activeConv.id, currentUser.id).then(() => {
+        // Trigger event to update badge count in sidebar
+        window.dispatchEvent(new Event('messagesUpdated'))
+      })
     }
 
     return () => unsubscribe()
