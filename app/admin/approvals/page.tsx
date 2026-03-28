@@ -60,7 +60,10 @@ export default function ApprovalsPage() {
           const currentUser = JSON.parse(currentUserStr)
           if (currentUser.id === userId) {
             currentUser.status = "verified"
+            currentUser.verifiedAt = new Date().toISOString()
             localStorage.setItem("currentUser", JSON.stringify(currentUser))
+            // Trigger page reload to update UI
+            window.location.reload()
           }
         }
       } else {
@@ -78,7 +81,15 @@ export default function ApprovalsPage() {
           const currentUser = JSON.parse(currentUserStr)
           if (currentUser.id === userId) {
             currentUser.licenseStatus = "verified"
+            currentUser.licenseVerifiedAt = new Date().toISOString()
+            // If user registered with license only, also update main status
+            if (!currentUser.govIdImage && currentUser.idType === "license") {
+              currentUser.status = "verified"
+              currentUser.verifiedAt = new Date().toISOString()
+            }
             localStorage.setItem("currentUser", JSON.stringify(currentUser))
+            // Trigger page reload to update UI
+            window.location.reload()
           }
         }
       } else {

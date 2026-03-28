@@ -86,10 +86,32 @@ export default function CreateRidePage() {
     const userStr = localStorage.getItem("currentUser")
     if (userStr) {
       const user = JSON.parse(userStr)
+      
+      // Refresh user data from Firebase to get latest verification status
+      const refreshUserData = async () => {
+        const { getCurrentUserProfile } = await import("@/lib/firebase-auth")
+        const freshUser = await getCurrentUserProfile(user.id)
+        if (freshUser) {
+          // Update localStorage with fresh data
+          localStorage.setItem("currentUser", JSON.stringify(freshUser))
+          
+          // Set user status based on fresh data
+          if (freshUser.role === "admin") {
+            setUserStatus("verified")
+          } else if (!freshUser.govIdImage && !freshUser.licenseImage) {
+            setUserStatus("no-id")
+          } else {
+            setUserStatus(freshUser.status || "pending")
+          }
+        }
+      }
+      
+      refreshUserData()
+      
       // Admins bypass verification checks
       if (user.role === "admin") {
         setUserStatus("verified")
-      } else if (!user.govIdImage) {
+      } else if (!user.govIdImage && !user.licenseImage) {
         // No ID uploaded - block access
         setUserStatus("no-id")
       } else {
