@@ -86,7 +86,12 @@ export async function getPendingVerifications() {
     
     const users: UserProfile[] = []
     snapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() } as UserProfile)
+      const userData = doc.data() as UserProfile
+      // Only include users who have govIdImage (not just license)
+      // OR users who uploaded license but it should show in license tab
+      if (userData.govIdImage) {
+        users.push({ id: doc.id, ...userData })
+      }
     })
     
     return { success: true, users }
@@ -159,12 +164,17 @@ export async function updateLicenseStatus(
 export async function getPendingLicenseVerifications() {
   try {
     const usersRef = collection(db, "users")
-    const q = query(usersRef, where("licenseStatus", "==", "pending"))
-    const snapshot = await getDocs(q)
+    // Get all users and filter for those with pending license
+    const snapshot = await getDocs(usersRef)
     
     const users: UserProfile[] = []
     snapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() } as UserProfile)
+      const userData = doc.data() as UserProfile
+      // Include users with licenseStatus == "pending" OR users with status == "pending" and idType == "license"
+      if (userData.licenseStatus === "pending" || 
+          (userData.status === "pending" && userData.idType === "license" && userData.licenseImage)) {
+        users.push({ id: doc.id, ...userData })
+      }
     })
     
     return { success: true, users }
