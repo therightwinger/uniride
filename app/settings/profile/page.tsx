@@ -29,6 +29,30 @@ export default function ProfileSettingsPage() {
     const userStr = localStorage.getItem("currentUser")
     if (userStr) {
       const user = JSON.parse(userStr)
+      
+      // Refresh user data from Firebase
+      const refreshUserData = async () => {
+        const { getCurrentUserProfile } = await import("@/lib/firebase-auth")
+        const freshUser = await getCurrentUserProfile(user.id)
+        if (freshUser) {
+          // Update localStorage with fresh data
+          localStorage.setItem("currentUser", JSON.stringify(freshUser))
+          setCurrentUser(freshUser)
+          setIdType(freshUser.idType || "other")
+          setFormData({
+            name: freshUser.name || "",
+            email: freshUser.email || "",
+            phone: freshUser.phone || "",
+            age: freshUser.age || "",
+            college: freshUser.college || "",
+            bio: freshUser.bio || ""
+          })
+        }
+      }
+      
+      refreshUserData()
+      
+      // Set initial data
       setCurrentUser(user)
       setIdType(user.idType || "other")
       setFormData({
