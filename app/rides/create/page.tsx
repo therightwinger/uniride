@@ -350,7 +350,7 @@ export default function CreateRidePage() {
     )
   }
 
-  if (userStatus === "pending" || userStatus === "rejected") {
+  if (userStatus === "pending") {
     return (
       <SidebarLayout>
         <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-6">
@@ -359,13 +359,41 @@ export default function CreateRidePage() {
               <Lock className="w-7 h-7 text-zinc-500" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">
-              {userStatus === "pending" ? "Verification Pending" : "Verification Rejected"}
+              Verification Pending
             </h2>
             <p className="text-sm text-zinc-500 mb-7">
-              {userStatus === "pending"
-                ? "Your ID is under review. You can post rides once verified."
-                : "Your verification was rejected. Please contact support."}
+              Your government ID is under review. You can create rides once your ID is verified by our admin team (usually within 24 hours).
             </p>
+            <Link href="/rides">
+              <button className="w-full py-3 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm font-semibold hover:bg-zinc-800 transition-all">
+                Browse Rides
+              </button>
+            </Link>
+          </div>
+        </div>
+      </SidebarLayout>
+    )
+  }
+
+  if (userStatus === "rejected") {
+    return (
+      <SidebarLayout>
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-6">
+          <div className="text-center max-w-xs">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center mx-auto mb-5">
+              <Lock className="w-7 h-7 text-zinc-500" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">
+              Verification Rejected
+            </h2>
+            <p className="text-sm text-zinc-500 mb-7">
+              Your verification was rejected. Please contact support or re-upload a clear government ID.
+            </p>
+            <Link href="/settings/support">
+              <button className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold mb-3 transition-all">
+                Contact Support
+              </button>
+            </Link>
             <Link href="/rides">
               <button className="w-full py-3 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm font-semibold hover:bg-zinc-800 transition-all">
                 Browse Rides
