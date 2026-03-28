@@ -3,6 +3,7 @@ import {
   getDocs, 
   doc, 
   updateDoc,
+  getDoc,
   query,
   where
 } from "firebase/firestore"
@@ -107,6 +108,15 @@ export async function updateLicenseStatus(
     
     if (licenseStatus === "verified") {
       updates.licenseVerifiedAt = new Date().toISOString()
+      
+      // If user signed up with driver's license (no govIdImage), also verify their main status
+      const userDoc = await getDoc(userRef)
+      const userData = userDoc.data()
+      if (userData && !userData.govIdImage && userData.idType === "license") {
+        // User registered with driver's license only
+        updates.status = "verified"
+        updates.verifiedAt = new Date().toISOString()
+      }
       
       // Send approval notification
       await createNotification(

@@ -105,13 +105,26 @@ export async function registerUser(
       age: userData.age,
       role: "user",
       status: "pending",
-      govIdImage: govIdBase64,
-      idType: userData.idType || "other",
       submittedAt: new Date().toISOString(),
       rating: 0,
       totalRides: 0,
       createdAt: new Date().toISOString(),
       emailVerified: false,
+    }
+
+    // Handle ID upload based on type
+    if (govIdBase64) {
+      if (userData.idType === "license") {
+        // User registered with driver's license
+        userProfile.licenseImage = govIdBase64
+        userProfile.licenseStatus = "pending"
+        userProfile.licenseSubmittedAt = new Date().toISOString()
+        userProfile.idType = "license"
+      } else {
+        // User registered with government ID
+        userProfile.govIdImage = govIdBase64
+        userProfile.idType = "other"
+      }
     }
 
     await setDoc(doc(db, "users", user.uid), userProfile)
