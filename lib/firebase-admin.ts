@@ -113,17 +113,21 @@ export async function updateLicenseStatus(
       const userDoc = await getDoc(userRef)
       const userData = userDoc.data()
       if (userData && !userData.govIdImage && userData.idType === "license") {
-        // User registered with driver's license only
+        // User registered with driver's license only - verify both statuses
         updates.status = "verified"
         updates.verifiedAt = new Date().toISOString()
       }
       
       // Send approval notification
+      const notificationMessage = userData && !userData.govIdImage && userData.idType === "license"
+        ? "Your driver's license has been verified. You can now create both Own Vehicle and Shared Cab rides!"
+        : "Your driver's license has been verified. You can now create rides using your own vehicle."
+      
       await createNotification(
         userId,
         "license_approved",
         "Driver's License Verified! 🚗",
-        "Your driver's license has been verified. You can now create rides using your own vehicle.",
+        notificationMessage,
         "/profile"
       )
     } else if (licenseStatus === "rejected") {

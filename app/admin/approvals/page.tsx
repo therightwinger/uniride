@@ -258,7 +258,10 @@ export default function ApprovalsPage() {
                           <p className="text-xs text-zinc-500 mt-0.5">📱 {user.phone}</p>
                         )}
                         {activeTab === "license" && user.status === "verified" && (
-                          <p className="text-xs text-emerald-400 mt-1">✓ Government ID already verified</p>
+                          <p className="text-xs text-emerald-400 mt-1">✓ Government ID already verified - Approving license will enable Own Vehicle rides</p>
+                        )}
+                        {activeTab === "license" && !user.govIdImage && user.idType === "license" && (
+                          <p className="text-xs text-blue-400 mt-1">ℹ️ Driver's license only - Approving will enable BOTH Own Vehicle and Shared Cab rides</p>
                         )}
                       </div>
                     </div>
